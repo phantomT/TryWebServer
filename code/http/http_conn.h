@@ -2,10 +2,10 @@
 #define HTTP_CONN_H
 
 #include <sys/types.h>
-#include <sys/uio.h>     // readv/writev
-#include <arpa/inet.h>   // sockaddr_in
-#include <stdlib.h>      // atoi()
-#include <errno.h>      
+#include <sys/uio.h>
+#include <arpa/inet.h>
+#include <cstdlib>
+#include <cerrno>
 
 #include "../log/log.h"
 #include "../pool/sql_conn_RAII.h"
@@ -19,11 +19,11 @@ public:
 
     ~HttpConn();
 
-    void init(int sockFd, const sockaddr_in& addr);
+    void Init(int sockFd, const sockaddr_in &addr);
 
-    ssize_t read(int* saveErrno);
+    ssize_t Read(int *saveErrno);
 
-    ssize_t write(int* saveErrno);
+    ssize_t Write(int *saveErrno);
 
     void Close();
 
@@ -31,39 +31,34 @@ public:
 
     int GetPort() const;
 
-    const char* GetIP() const;
-    
+    const char *GetIP() const;
+
     sockaddr_in GetAddr() const;
-    
+
     bool process();
 
-    int ToWriteBytes() { 
-        return iov_[0].iov_len + iov_[1].iov_len; 
+    int ToWriteBytes() {
+        return h_iov[0].iov_len + h_iov[1].iov_len;
     }
 
     bool IsKeepAlive() const {
-        return request_.IsKeepAlive();
+        return h_request.IsKeepAlive();
     }
 
     static bool isET;
-    static const char* srcDir;
+    static const char *srcDir;
     static std::atomic<int> userCount;
-    
+
 private:
-   
-    int fd_;
-    struct  sockaddr_in addr_;
-
-    bool isClose_;
-    
-    int iovCnt_;
-    struct iovec iov_[2];
-    
-    Buffer readBuff_; // 读缓冲区
-    Buffer writeBuff_; // 写缓冲区
-
-    HttpRequest request_;
-    HttpResponse response_;
+    int h_fd;
+    struct sockaddr_in s_addr;
+    bool isClose;
+    int h_iovCnt;
+    struct iovec h_iov[2];
+    Buffer h_readBuff; // 读缓冲区
+    Buffer h_writeBuff; // 写缓冲区
+    HttpRequest h_request;
+    HttpResponse h_response;
 };
 
 

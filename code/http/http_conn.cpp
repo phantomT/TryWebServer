@@ -1,61 +1,60 @@
 #include "http_conn.h"
-using namespace std;
 
-const char* HttpConn::srcDir;
+const char *HttpConn::srcDir;
 std::atomic<int> HttpConn::userCount;
 bool HttpConn::isET;
 
-HttpConn::HttpConn() { 
-    fd_ = -1;
-    addr_ = { 0 };
-    isClose_ = true;
-};
+HttpConn::HttpConn() {
+    h_fd = -1;
+    s_addr = {0};
+    isClose = true;
+}
 
-HttpConn::~HttpConn() { 
-    Close(); 
-};
+HttpConn::~HttpConn() {
+    Close();
+}
 
-void HttpConn::init(int fd, const sockaddr_in& addr) {
-    assert(fd > 0);
-    userCount++;
-    addr_ = addr;
-    fd_ = fd;
-    writeBuff_.RetrieveAll();
-    readBuff_.RetrieveAll();
-    isClose_ = false;
-    LOG_INFO("Client[%d](%s:%d) in, userCount:%d", fd_, GetIP(), GetPort(), (int)userCount);
+void HttpConn::Init(int sockFd, const sockaddr_in &addr) {
+    assert(sockFd > 0);
+    ++userCount;
+    s_addr = addr;
+    h_fd = sockFd;
+    h_writeBuff.RetrieveAll();
+    h_readBuff.RetrieveAll();
+    isClose = false;
+    LOG_INFO("Client[%d](%s:%d) in, userCount:%d", h_fd, GetIP(), GetPort(), (int) userCount)
 }
 
 void HttpConn::Close() {
-    response_.UnmapFile();
-    if(isClose_ == false){
-        isClose_ = true; 
+    h_response.UnmapFile();
+    if (!isClose) {
+        isClose = true;
         userCount--;
-        close(fd_);
-        LOG_INFO("Client[%d](%s:%d) quit, UserCount:%d", fd_, GetIP(), GetPort(), (int)userCount);
+        close(h_fd);
+        LOG_INFO("Client[%d](%s:%d) quit, UserCount:%d", h_fd, GetIP(), GetPort(), (int) userCount)
     }
 }
 
 int HttpConn::GetFd() const {
-    return fd_;
-};
-
-struct sockaddr_in HttpConn::GetAddr() const {
-    return addr_;
+    return h_fd;
 }
 
-const char* HttpConn::GetIP() const {
-    return inet_ntoa(addr_.sin_addr);
+struct sockaddr_in HttpConn::GetAddr() const {
+    return s_addr;
+}
+
+const char *HttpConn::GetIP() const {
+    return inet_ntoa(s_addr.sin_addr);
 }
 
 int HttpConn::GetPort() const {
-    return addr_.sin_port;
+    return s_addr.sin_port;
 }
 
-ssize_t HttpConn::read(int* saveErrno) {
+ssize_t HttpConn::Read(int *saveErrno) {
     ssize_t len = -1;
     do {
-        len = readBuff_.ReadFd(fd_, saveErrno);
+        len = h_readBuff.ReadFd(h_fd, saveErrno);
         if (len <= 0) {
             break;
         }
@@ -63,56 +62,54 @@ ssize_t HttpConn::read(int* saveErrno) {
     return len;
 }
 
-ssize_t HttpConn::write(int* saveErrno) {
+ssize_t HttpConn::Write(int *saveErrno) {
     ssize_t len = -1;
     do {
-        len = writev(fd_, iov_, iovCnt_);
-        if(len <= 0) {
+        len = writev(h_fd, h_iov, h_iovCnt);
+        if (len <= 0) {
             *saveErrno = errno;
             break;
         }
-        if(iov_[0].iov_len + iov_[1].iov_len  == 0) { break; } /* 传输结束 */
-        else if(static_cast<size_t>(len) > iov_[0].iov_len) {
-            iov_[1].iov_base = (uint8_t*) iov_[1].iov_base + (len - iov_[0].iov_len);
-            iov_[1].iov_len -= (len - iov_[0].iov_len);
-            if(iov_[0].iov_len) {
-                writeBuff_.RetrieveAll();
-                iov_[0].iov_len = 0;
+        if (h_iov[0].iov_len + h_iov[1].iov_len == 0) { break; } /* 传输结束 */
+        else if (static_cast<size_t>(len) > h_iov[0].iov_len) {
+            h_iov[1].iov_base = (uint8_t *) h_iov[1].iov_base + (len - h_iov[0].iov_len);
+            h_iov[1].iov_len -= (len - h_iov[0].iov_len);
+            if (h_iov[0].iov_len) {
+                h_writeBuff.RetrieveAll();
+                h_iov[0].iov_len = 0;
             }
+        } else {
+            h_iov[0].iov_base = (uint8_t *) h_iov[0].iov_base + len;
+            h_iov[0].iov_len -= len;
+            h_writeBuff.Retrieve(len);
         }
-        else {
-            iov_[0].iov_base = (uint8_t*)iov_[0].iov_base + len; 
-            iov_[0].iov_len -= len; 
-            writeBuff_.Retrieve(len);
-        }
-    } while(isET || ToWriteBytes() > 10240);
+    } while (isET || ToWriteBytes() > 10240);
     return len;
 }
 
 bool HttpConn::process() {
-    request_.Init();
-    if(readBuff_.ReadableBytes() <= 0) {
+    h_request.Init();
+    if (h_readBuff.ReadableBytes() <= 0) {
         return false;
-    }
-    else if(request_.parse(readBuff_)) {
-        LOG_DEBUG("%s", request_.path().c_str());
-        response_.Init(srcDir, request_.path(), request_.IsKeepAlive(), 200);
+    } else if (h_request.Parse(h_readBuff)) {
+        LOG_DEBUG("%s", h_request.Path().c_str())
+        h_response.Init(srcDir, h_request.Path(), h_request.IsKeepAlive(), 200);
     } else {
-        response_.Init(srcDir, request_.path(), false, 400);
+        h_response.Init(srcDir, h_request.Path(), false, 400);
     }
 
-    response_.MakeResponse(writeBuff_);
-    /* 响应头 */
-    iov_[0].iov_base = const_cast<char*>(writeBuff_.Peek());
-    iov_[0].iov_len = writeBuff_.ReadableBytes();
-    iovCnt_ = 1;
+    h_response.MakeResponse(h_writeBuff);
+    // 响应头
+    h_iov[0].iov_base = const_cast<char *>(h_writeBuff.Peek());
+    h_iov[0].iov_len = h_writeBuff.ReadableBytes();
+    h_iovCnt = 1;
 
-    /* 文件 */
-    if(response_.FileLen() > 0  && response_.File()) {
-        iov_[1].iov_base = response_.File();
-        iov_[1].iov_len = response_.FileLen();
-        iovCnt_ = 2;
+    // 文件
+    if (h_response.FileLen() > 0 && h_response.File()) {
+        h_iov[1].iov_base = h_response.File();
+        h_iov[1].iov_len = h_response.FileLen();
+        h_iovCnt = 2;
     }
-    LOG_DEBUG("filesize:%d, %d  to %d", response_.FileLen() , iovCnt_, ToWriteBytes());
+    LOG_DEBUG("filesize:%d, %d  to %d", h_response.FileLen(), h_iovCnt, ToWriteBytes())
     return true;
 }

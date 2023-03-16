@@ -109,7 +109,7 @@ void WebServer::CloseConn(HttpConn *client) {
 
 void WebServer::AddClient(int fd, sockaddr_in addr) {
     assert(fd > 0);
-    w_users[fd].init(fd, addr);
+    w_users[fd].Init(fd, addr);
     if (w_timeoutMs > 0) {
         w_timer->Add(fd, w_timeoutMs, [this, w_userFd = &w_users[fd]] { CloseConn(w_userFd); });
     }
@@ -154,7 +154,7 @@ void WebServer::OnRead(HttpConn *client) {
     assert(client);
     int ret = -1;
     int readErrno = 0;
-    ret = client->read(&readErrno);
+    ret = client->Read(&readErrno);
     if (ret <= 0 && readErrno != EAGAIN) {
         CloseConn(client);
         return;
@@ -174,7 +174,7 @@ void WebServer::OnWrite(HttpConn *client) {
     assert(client);
     int ret = -1;
     int writeErrno = 0;
-    ret = client->write(&writeErrno);
+    ret = client->Write(&writeErrno);
     if (client->ToWriteBytes() == 0) {
         // 传输完成
         if (client->IsKeepAlive()) {

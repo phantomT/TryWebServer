@@ -2,10 +2,10 @@
 #define HTTP_RESPONSE_H
 
 #include <unordered_map>
-#include <fcntl.h>       // open
-#include <unistd.h>      // close
-#include <sys/stat.h>    // stat
-#include <sys/mman.h>    // mmap, munmap
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 
 #include "../buffer/buffer.h"
 #include "../log/log.h"
@@ -13,32 +13,42 @@
 class HttpResponse {
 public:
     HttpResponse();
+
     ~HttpResponse();
 
-    void Init(const std::string& srcDir, std::string& path, bool isKeepAlive = false, int code = -1);
-    void MakeResponse(Buffer& buff);
+    void Init(const std::string &_srcDir, std::string &_path, bool _isKeepAlive = false, int _code = -1);
+
+    void MakeResponse(Buffer &buff);
+
     void UnmapFile();
-    char* File();
+
+    char *File();
+
     size_t FileLen() const;
-    void ErrorContent(Buffer& buff, std::string message);
-    int Code() const { return code_; }
+
+    void ErrorContent(Buffer &buff, const std::string& message) const;
+
+    int Code() const { return h_code; }
 
 private:
-    void AddStateLine_(Buffer &buff);
-    void AddHeader_(Buffer &buff);
-    void AddContent_(Buffer &buff);
+    void AddStateLine(Buffer &buff);
 
-    void ErrorHtml_();
-    std::string GetFileType_();
+    void AddHeader(Buffer &buff);
 
-    int code_;
-    bool isKeepAlive_;
+    void AddContent(Buffer &buff);
 
-    std::string path_;
-    std::string srcDir_;
-    
-    char* mmFile_; 
-    struct stat mmFileStat_;
+    void ErrorHtml();
+
+    std::string GetFileType();
+
+    int h_code;
+    bool isKeepAlive;
+
+    std::string path;
+    std::string srcDir;
+
+    char *mmFile;
+    struct stat mmFileStat;
 
     static const std::unordered_map<std::string, std::string> SUFFIX_TYPE;
     static const std::unordered_map<int, std::string> CODE_STATUS;
