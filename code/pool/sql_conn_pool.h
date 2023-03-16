@@ -7,6 +7,7 @@
 #include <mutex>
 #include <semaphore.h>
 #include <thread>
+
 #include "../log/log.h"
 
 class SqlConnPool {
@@ -14,26 +15,29 @@ public:
     static SqlConnPool *Instance();
 
     MYSQL *GetConn();
-    void FreeConn(MYSQL * conn);
+
+    void FreeConn(MYSQL *conn);
+
     int GetFreeConnCount();
 
-    void Init(const char* host, int port,
-              const char* user,const char* pwd, 
-              const char* dbName, int connSize);
+    void Init(const char *host, int port,
+              const char *user, const char *pwd,
+              const char *dbName, int connSize);
+
     void ClosePool();
 
 private:
     SqlConnPool();
+
     ~SqlConnPool();
 
-    int MAX_CONN_;
-    int useCount_;
-    int freeCount_;
+    int MAX_CONN;
+    int useCount;
+    int freeCount;
 
-    std::queue<MYSQL *> connQue_;
-    std::mutex mtx_;
-    sem_t semId_;
+    std::queue<MYSQL *> s_connQue;
+    std::mutex s_mutex;
+    sem_t semId;
 };
-
 
 #endif // SQL_CONN_POOL_H

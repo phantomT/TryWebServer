@@ -1,50 +1,64 @@
 #ifndef BUFFER_H
 #define BUFFER_H
-#include <cstring>   //perror
+
+#include <cstring>
+#include <cassert>
+#include <unistd.h>
+#include <sys/uio.h>
 #include <iostream>
-#include <unistd.h>  // write
-#include <sys/uio.h> //readv
-#include <vector> //readv
+#include <vector>
 #include <atomic>
-#include <assert.h>
+
 class Buffer {
 public:
-    Buffer(int initBuffSize = 1024);
-    ~Buffer() = default;
+    explicit Buffer(int initBuffSize = 1024);
 
-    size_t WritableBytes() const;       
-    size_t ReadableBytes() const ;
-    size_t PrependableBytes() const;
+    size_t WritableBytes() const;
 
-    const char* Peek() const;
+    size_t ReadableBytes() const;
+
+    size_t PrependBytes() const;
+
+    const char *Peek() const;
+
     void EnsureWriteable(size_t len);
+
     void HasWritten(size_t len);
 
     void Retrieve(size_t len);
-    void RetrieveUntil(const char* end);
 
-    void RetrieveAll() ;
+    void RetrieveUntil(const char *end);
+
+    void RetrieveAll();
+
     std::string RetrieveAllToStr();
 
-    const char* BeginWriteConst() const;
-    char* BeginWrite();
+    const char *BeginWriteConst() const;
 
-    void Append(const std::string& str);
-    void Append(const char* str, size_t len);
-    void Append(const void* data, size_t len);
-    void Append(const Buffer& buff);
+    char *BeginWrite();
 
-    ssize_t ReadFd(int fd, int* Errno);
-    ssize_t WriteFd(int fd, int* Errno);
+    void Append(const std::string &str);
+
+    void Append(const char *str, size_t len);
+
+    void Append(const void *data, size_t len);
+
+    void Append(const Buffer &buff);
+
+    ssize_t ReadFd(int fd, int *Errno);
+
+    ssize_t WriteFd(int fd, int *Errno);
 
 private:
-    char* BeginPtr_();
-    const char* BeginPtr_() const;
-    void MakeSpace_(size_t len);
+    char *BeginPtr();
 
-    std::vector<char> buffer_;
-    std::atomic<std::size_t> readPos_;
-    std::atomic<std::size_t> writePos_;
+    const char *BeginPtr() const;
+
+    void AdjustSpace(size_t len);
+
+    std::vector<char> v_buffer;
+    std::atomic<std::size_t> readPos;
+    std::atomic<std::size_t> writePos;
 };
 
 #endif //BUFFER_H

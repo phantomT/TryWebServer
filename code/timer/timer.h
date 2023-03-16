@@ -3,12 +3,13 @@
 
 #include <queue>
 #include <unordered_map>
-#include <time.h>
+#include <ctime>
 #include <algorithm>
-#include <arpa/inet.h> 
-#include <functional> 
-#include <assert.h> 
+#include <arpa/inet.h>
+#include <functional>
+#include <cassert>
 #include <chrono>
+
 #include "../log/log.h"
 
 typedef std::function<void()> TimeoutCallBack;
@@ -20,42 +21,44 @@ struct TimerNode {
     int id;
     TimeStamp expires;
     TimeoutCallBack cb;
-    bool operator<(const TimerNode& t) const {
+
+    bool operator<(const TimerNode &t) const {
         return expires < t.expires;
     }
 };
+
 class Timer {
 public:
-    Timer() { heap_.reserve(64); }
+    Timer() { t_heap.reserve(64); }
 
-    ~Timer() { clear(); }
-    
-    void adjust(int id, int newExpires);
+    ~Timer() { Clear(); }
 
-    void add(int id, int timeOut, const TimeoutCallBack& cb);
+    void Adjust(int id, int timeout);
 
-    void doWork(int id);
+    void Add(int id, int timeOut, const TimeoutCallBack &cb);
 
-    void clear();
+    void DoWork(int id);
 
-    void tick();
+    void Clear();
 
-    void pop();
+    void Tick();
+
+    void Pop();
 
     int GetNextTick();
 
 private:
-    void del_(size_t i);
-    
-    void siftup_(size_t i);
+    void Del(size_t index);
 
-    bool siftdown_(size_t index, size_t n);
+    void ShiftUp(size_t i);
 
-    void SwapNode_(size_t i, size_t j);
+    bool ShiftDown(size_t index, size_t n);
 
-    std::vector<TimerNode> heap_;
+    void SwapNode(size_t i, size_t j);
 
-    std::unordered_map<int, size_t> ref_;
+    std::vector<TimerNode> t_heap;
+
+    std::unordered_map<int, size_t> t_ref;
 };
 
 #endif //TIMER_H

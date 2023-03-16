@@ -1,12 +1,12 @@
 #ifndef EPOLLER_H
 #define EPOLLER_H
 
-#include <sys/epoll.h> //epoll_ctl()
-#include <fcntl.h>  // fcntl()
-#include <unistd.h> // close()
-#include <assert.h> // close()
+#include <sys/epoll.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <cassert>
+#include <cerrno>
 #include <vector>
-#include <errno.h>
 
 class Epoller {
 public:
@@ -14,22 +14,21 @@ public:
 
     ~Epoller();
 
-    bool AddFd(int fd, uint32_t events);
+    bool AddFd(int fd, uint32_t events) const;
 
-    bool ModFd(int fd, uint32_t events);
+    bool ModFd(int fd, uint32_t events) const;
 
-    bool DelFd(int fd);
+    bool DelFd(int fd) const;
 
     int Wait(int timeoutMs = -1);
 
     int GetEventFd(size_t i) const;
 
     uint32_t GetEvents(size_t i) const;
-        
-private:
-    int epollFd_;
 
-    std::vector<struct epoll_event> events_;    
+private:
+    int e_epollFd;
+    std::vector<struct epoll_event> e_events;
 };
 
 #endif //EPOLLER_H

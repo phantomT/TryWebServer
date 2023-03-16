@@ -1,70 +1,78 @@
 #ifndef LOG_H
 #define LOG_H
 
+#include <cstring>
+#include <cstdarg>
+#include <cassert>
 #include <mutex>
 #include <string>
 #include <thread>
+#include <sys/stat.h>
 #include <sys/time.h>
-#include <string.h>
-#include <stdarg.h>           // vastart va_end
-#include <assert.h>
-#include <sys/stat.h>         //mkdir
+
 #include "block_queue.h"
 #include "../buffer/buffer.h"
 
 class Log {
 public:
-    void init(int level, const char* path = "./log", 
-                const char* suffix =".log",
-                int maxQueueCapacity = 1024);
+    void Init(int level, const char *path = "./log",
+              const char *suffix = ".log",
+              int maxQueueCapacity = 1024);
 
-    static Log* Instance();
+    static Log *Instance();
+
     static void FlushLogThread();
 
-    void write(int level, const char *format,...);
-    void flush();
+    void Write(int level, const char *format, ...);
+
+    void Flush();
 
     int GetLevel();
+
     void SetLevel(int level);
-    bool IsOpen() { return isOpen_; }
-    
+
+    bool IsOpen() const { return l_isOpen; }
+
 private:
     Log();
-    void AppendLogLevelTitle_(int level);
+
+    void AppendLogLevelTitle(int level);
+
     virtual ~Log();
-    void AsyncWrite_();
+
+    void AsyncWrite();
 
 private:
     static const int LOG_PATH_LEN = 256;
     static const int LOG_NAME_LEN = 256;
     static const int MAX_LINES = 50000;
 
-    const char* path_;
-    const char* suffix_;
+    const char *l_path;
+    const char *l_suffix;
 
-    int MAX_LINES_;
+    int L_MAX_LINES;
 
-    int lineCount_;
-    int toDay_;
+    int l_lineCnt;
+    int l_toDay;
 
-    bool isOpen_;
- 
-    Buffer buff_;
-    int level_;
-    bool isAsync_;
+    bool l_isOpen;
 
-    FILE* fp_;
-    std::unique_ptr<BlockDeque<std::string>> deque_; 
-    std::unique_ptr<std::thread> writeThread_;
-    std::mutex mtx_;
+    Buffer l_buff;
+    int l_level;
+    bool isAsync;
+
+    FILE *l_fp;
+    std::unique_ptr<BlockDeque<std::string>> l_blQue;
+    std::unique_ptr<std::thread> l_writeThread;
+    std::mutex l_mutex;
 };
 
 #define LOG_BASE(level, format, ...) \
     do {\
         Log* log = Log::Instance();\
         if (log->IsOpen() && log->GetLevel() <= level) {\
-            log->write(level, format, ##__VA_ARGS__); \
-            log->flush();\
+            log->Write(level, format, ##__VA_ARGS__); \
+            log->Flush();\
         }\
     } while(0);
 

@@ -2,23 +2,23 @@
 #define SQL_CONN_RAII_H
 #include "sql_conn_pool.h"
 
-/* 资源在对象构造初始化 资源在对象析构时释放*/
+// 资源在对象构造初始化 资源在对象析构时释放
 class SqlConnRAII {
 public:
-    SqlConnRAII(MYSQL** sql, SqlConnPool *connpool) {
-        assert(connpool);
-        *sql = connpool->GetConn();
-        sql_ = *sql;
-        connpool_ = connpool;
+    SqlConnRAII(MYSQL** sql, SqlConnPool *connPool) {
+        assert(connPool);
+        *sql = connPool->GetConn();
+        raii_sql = *sql;
+        raii_connPool = connPool;
     }
     
     ~SqlConnRAII() {
-        if(sql_) { connpool_->FreeConn(sql_); }
+        if(raii_sql) { raii_connPool->FreeConn(raii_sql); }
     }
     
 private:
-    MYSQL *sql_;
-    SqlConnPool* connpool_;
+    MYSQL *raii_sql;
+    SqlConnPool* raii_connPool;
 };
 
 #endif //SQL_CONN_RAII_H
