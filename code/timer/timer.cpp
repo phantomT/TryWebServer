@@ -41,7 +41,7 @@ void Timer::Add(int id, int timeOut, const TimeoutCallBack &cb) {
         i = t_heap.size();
         t_ref[id] = i;
         t_heap.push_back({id, Clock::now() + MS(timeOut), cb});
-        ShiftUp(i);
+        if(i) ShiftUp(i);
     } else {
         // 已有结点：调整堆
         i = t_ref[id];
@@ -85,7 +85,7 @@ void Timer::Del(size_t index) {
 void Timer::Adjust(int id, int timeout) {
     // 调整指定id的结点
     assert(!t_heap.empty() && t_ref.count(id) > 0);
-    t_heap[t_ref[id]].expires = Clock::now() + MS(timeout);;
+    t_heap[t_ref[id]].expires = Clock::now() + MS(timeout);
     ShiftDown(t_ref[id], t_heap.size());
 }
 

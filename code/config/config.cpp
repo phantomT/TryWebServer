@@ -1,59 +1,29 @@
 #include "config.h"
 
 Config::Config() {
-    port = 9006;
-    trigMode = 3;
-    timeoutMs = 60000;
-    optLinger = false;
-    connPoolNum = 12;
-    threadNum = 6;
-    openLog = true;
-    logLevel = 1;
-    logQueSize = 1024;
+    Init();
 }
 
-void Config::ParseArg(int argc, char **argv) {
-    int opt;
-    const char *str = "p:r:m:o:c:t:s:l:q:";
-    while ((opt = getopt(argc, argv, str)) != -1) {
-        switch (opt) {
-            case 'p': {
-                port = std::stoi(optarg);
-                break;
-            }
-            case 'r': {
-                trigMode = std::stoi(optarg);
-                break;
-            }
-            case 'm': {
-                timeoutMs = std::stoi(optarg);
-                break;
-            }
-            case 'o': {
-                optLinger = std::stoi(optarg);
-                break;
-            }
-            case 'c': {
-                connPoolNum = std::stoi(optarg);
-                break;
-            }
-            case 't': {
-                threadNum = std::stoi(optarg);
-                break;
-            }
-            case 's': {
-                openLog = std::stoi(optarg);
-                break;
-            }
-            case 'l': {
-                logLevel = std::stoi(optarg);
-                break;
-            }
-            case 'q': {
-                logQueSize = std::stoi(optarg);
-            }
-            default:
-                break;
-        }
-    }
+void Config::Init() {
+    std::ifstream fin("./server_config.json");
+    std::stringstream ss;
+    ss << fin.rdbuf();
+    std::string s(ss.str());
+    auto config = parser(s).value();
+    auto sqlNode = config["mysql"];
+    sqlPort = sqlNode["port"].getInt();
+    sqlUser = sqlNode["username"].getString();
+    sqlPwd = sqlNode["password"].getString();
+    dbName = sqlNode["database"].getString();
+
+    auto serverNode = config["server"];
+    port = serverNode["port"].getInt();
+    trigMode = serverNode["trigMode"].getInt();
+    timeoutMs = serverNode["timeoutMs"].getInt();
+    optLinger = serverNode["optLinger"].getBool();
+    connPoolNum = serverNode["connPoolNum"].getInt();
+    threadNum = serverNode["threadNum"].getInt();
+    openLog = serverNode["openLog"].getBool();
+    logLevel = serverNode["logLevel"].getInt();
+    logQueSize = serverNode["logQueSize"].getInt();
 }

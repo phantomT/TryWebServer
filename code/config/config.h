@@ -4,11 +4,18 @@
 #include <unistd.h>
 #include <string>
 
+#include "json_util.h"
+
 class Config {
 public:
     Config();
 
-    void ParseArg(int argc, char *argv[]);
+    void Init();
+
+    int sqlPort;
+    std::string sqlUser;
+    std::string sqlPwd;
+    std::string dbName;
 
     int port;
     int trigMode;

@@ -1,0 +1,19 @@
+{
+  "mysql": {
+    "port": 3306,
+    "username": "tbb",
+    "password": "123456",
+    "database": "webDB"
+  },
+  "server": {
+    "port": 9006,
+    "trigMode": 3,
+    "timeoutMs": 60000,
+    "optLinger": false,
+    "connPoolNum": 12,
+    "threadNum": 6,
+    "openLog": true,
+    "logLevel": 1,
+    "logQueSize": 1024
+  }
+}
