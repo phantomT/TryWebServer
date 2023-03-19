@@ -1,10 +1,10 @@
 #include "http_request.h"
 
-const std::unordered_set<std::string> HttpRequest::DEFAULT_HTML{
+const std::unordered_set<string> HttpRequest::DEFAULT_HTML{
         "/index", "/register", "/login",
         "/welcome", "/video", "/picture",};
 
-const std::unordered_map<std::string, int> HttpRequest::DEFAULT_HTML_TAG{
+const std::unordered_map<string, int> HttpRequest::DEFAULT_HTML_TAG{
         {"/register.html", 0},
         {"/login.html",    1},};
 
@@ -30,7 +30,7 @@ bool HttpRequest::Parse(Buffer &buff) {
     while (buff.ReadableBytes() && h_state != FINISH) {
         const char *lineEnd = std::search(buff.Peek(), buff.BeginWriteConst(),
                                           CRLF, CRLF + 2);
-        std::string line(buff.Peek(), lineEnd);
+        string line(buff.Peek(), lineEnd);
         switch (h_state) {
             case REQUEST_LINE:
                 if (!ParseRequestLine(line)) {
@@ -61,16 +61,13 @@ void HttpRequest::ParsePath() {
     if (h_path == "/") {
         h_path = "/index.html";
     } else {
-        for (auto &item: DEFAULT_HTML) {
-            if (item == h_path) {
-                h_path += ".html";
-                break;
-            }
+        if (DEFAULT_HTML.count(h_path)) {
+            h_path += ".html";
         }
     }
 }
 
-bool HttpRequest::ParseRequestLine(const std::string &line) {
+bool HttpRequest::ParseRequestLine(const string &line) {
     std::regex patten("^([^ ]*) ([^ ]*) HTTP/([^ ]*)$");
     std::smatch subMatch;
     if (regex_match(line, subMatch, patten)) {
@@ -84,7 +81,7 @@ bool HttpRequest::ParseRequestLine(const std::string &line) {
     return false;
 }
 
-void HttpRequest::ParseHeader(const std::string &line) {
+void HttpRequest::ParseHeader(const string &line) {
     std::regex patten("^([^:]*): ?(.*)$");
     std::smatch subMatch;
     if (regex_match(line, subMatch, patten)) {
@@ -94,17 +91,11 @@ void HttpRequest::ParseHeader(const std::string &line) {
     }
 }
 
-void HttpRequest::ParseBody(const std::string &line) {
+void HttpRequest::ParseBody(const string &line) {
     h_body = line;
     ParsePost();
     h_state = FINISH;
     LOG_DEBUG("Body:%s, len:%d", line.c_str(), line.size())
-}
-
-int HttpRequest::ConvertHex(char ch) {
-    if (ch >= 'A' && ch <= 'F') return ch - 'A' + 10;
-    if (ch >= 'a' && ch <= 'f') return ch - 'a' + 10;
-    return ch;
 }
 
 void HttpRequest::ParsePost() {
@@ -127,46 +118,17 @@ void HttpRequest::ParsePost() {
 
 void HttpRequest::ParseFromUrlEncoded() {
     if (h_body.empty()) { return; }
-
-    std::string key, value;
-    int num = 0;
-    int n = h_body.size();
-    int i = 0, j = 0;
-
-    for (; i < n; ++i) {
-        char ch = h_body[i];
-        switch (ch) {
-            case '=':
-                key = h_body.substr(j, i - j);
-                j = i + 1;
-                break;
-            case '+':
-                h_body[i] = ' ';
-                break;
-            case '%':
-                num = ConvertHex(h_body[i + 1]) * 16 + ConvertHex(h_body[i + 2]);
-                h_body[i + 2] = num % 10 + '0';
-                h_body[i + 1] = num / 10 + '0';
-                i += 2;
-                break;
-            case '&':
-                value = h_body.substr(j, i - j);
-                j = i + 1;
-                h_post[key] = value;
-                LOG_DEBUG("%s = %s", key.c_str(), value.c_str())
-                break;
-            default:
-                break;
-        }
-    }
-    assert(j <= i);
-    if (h_post.count(key) == 0 && j < i) {
-        value = h_body.substr(j, i - j);
-        h_post[key] = value;
+    std::regex patten("(?!&)(.*?)=(.*?)(?=&|$)");
+    std::smatch subMatch;
+    string::const_iterator begin = h_body.begin();
+    string::const_iterator end = h_body.end();
+    while (std::regex_search(begin, end, subMatch, patten)) {
+        h_post[subMatch[1]] = subMatch[2];
+        begin = subMatch[0].second;
     }
 }
 
-bool HttpRequest::UserVerify(const std::string &name, const std::string &pwd, bool isLogin) {
+bool HttpRequest::UserVerify(const string &name, const string &pwd, bool isLogin) {
     if (name.empty() || pwd.empty()) { return false; }
     LOG_INFO("Verify name:%s pwd:%s", name.c_str(), pwd.c_str())
     MYSQL *sql;
@@ -174,27 +136,24 @@ bool HttpRequest::UserVerify(const std::string &name, const std::string &pwd, bo
     assert(sql);
 
     bool flag = false;
-    unsigned int j = 0;
-    char order[256] = {0};
-    MYSQL_FIELD *fields = nullptr;
     MYSQL_RES *res = nullptr;
+
+    const string order1 = "SELECT username, password FROM user WHERE username='" + name + "' LIMIT 1";
+    const string order2 = "INSERT INTO user(username, password) VALUES('" + name + "','" + pwd + "')";
 
     if (!isLogin) { flag = true; }
     /* 查询用户及密码 */
-    snprintf(order, 256, "SELECT username, password FROM user WHERE username='%s' LIMIT 1", name.c_str());
-    LOG_DEBUG("%s", order)
+    LOG_DEBUG("%s", order1.c_str())
 
-    if (mysql_query(sql, order)) {
+    if (mysql_query(sql, order1.c_str())) {
         mysql_free_result(res);
         return false;
     }
     res = mysql_store_result(sql);
-    j = mysql_num_fields(res);
-    fields = mysql_fetch_fields(res);
 
     while (MYSQL_ROW row = mysql_fetch_row(res)) {
         LOG_DEBUG("MYSQL ROW: %s %s", row[0], row[1])
-        std::string password(row[1]);
+        string password(row[1]);
         // 注册行为 且 用户名未被使用
         if (isLogin) {
             if (pwd == password) { flag = true; }
@@ -212,10 +171,8 @@ bool HttpRequest::UserVerify(const std::string &name, const std::string &pwd, bo
     // 注册行为 且 用户名未被使用
     if (!isLogin && flag) {
         LOG_DEBUG("register!")
-        bzero(order, 256);
-        snprintf(order, 256, "INSERT INTO user(username, password) VALUES('%s','%s')", name.c_str(), pwd.c_str());
-        LOG_DEBUG("%s", order)
-        if (mysql_query(sql, order)) {
+        LOG_DEBUG("%s", order2.c_str())
+        if (mysql_query(sql, order2.c_str())) {
             LOG_DEBUG("Insert error!")
             flag = false;
         }
@@ -226,23 +183,19 @@ bool HttpRequest::UserVerify(const std::string &name, const std::string &pwd, bo
     return flag;
 }
 
-std::string HttpRequest::Path() const {
+string &HttpRequest::Path() {
     return h_path;
 }
 
-std::string &HttpRequest::Path() {
-    return h_path;
-}
-
-std::string HttpRequest::Method() const {
+string HttpRequest::GetMethod() const {
     return h_method;
 }
 
-std::string HttpRequest::Version() const {
+string HttpRequest::GetVersion() const {
     return h_version;
 }
 
-std::string HttpRequest::GetPost(const std::string &key) const {
+string HttpRequest::GetPost(const string &key) const {
     assert(!key.empty());
     if (h_post.count(key) == 1) {
         return h_post.find(key)->second;
@@ -250,7 +203,7 @@ std::string HttpRequest::GetPost(const std::string &key) const {
     return "";
 }
 
-std::string HttpRequest::GetPost(const char *key) const {
+string HttpRequest::GetPost(const char *key) const {
     assert(key != nullptr);
     if (h_post.count(key) == 1) {
         return h_post.find(key)->second;

@@ -1,10 +1,5 @@
 #include "sql_conn_pool.h"
 
-SqlConnPool::SqlConnPool() {
-    useCount = 0;
-    freeCount = 0;
-}
-
 SqlConnPool *SqlConnPool::Instance() {
     static SqlConnPool connPool;
     return &connPool;

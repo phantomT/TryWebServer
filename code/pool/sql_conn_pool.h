@@ -27,13 +27,9 @@ public:
     void ClosePool();
 
 private:
-    SqlConnPool();
-
     ~SqlConnPool();
 
     int MAX_CONN;
-    int useCount;
-    int freeCount;
 
     std::queue<MYSQL *> s_connQue;
     std::mutex s_mutex;

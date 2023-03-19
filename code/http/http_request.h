@@ -13,6 +13,8 @@
 #include "../pool/sql_conn_pool.h"
 #include "../pool/sql_conn_RAII.h"
 
+using std::string;
+
 class HttpRequest {
 public:
     enum PARSE_STATE {
@@ -39,26 +41,24 @@ public:
 
     bool Parse(Buffer &buff);
 
-    std::string Path() const;
+    string &Path();
 
-    std::string &Path();
+    string GetMethod() const;
 
-    std::string Method() const;
+    string GetVersion() const;
 
-    std::string Version() const;
+    string GetPost(const string &key) const;
 
-    std::string GetPost(const std::string &key) const;
-
-    std::string GetPost(const char *key) const;
+    string GetPost(const char *key) const;
 
     bool IsKeepAlive() const;
 
 private:
-    bool ParseRequestLine(const std::string &line);
+    bool ParseRequestLine(const string &line);
 
-    void ParseHeader(const std::string &line);
+    void ParseHeader(const string &line);
 
-    void ParseBody(const std::string &line);
+    void ParseBody(const string &line);
 
     void ParsePath();
 
@@ -66,17 +66,15 @@ private:
 
     void ParseFromUrlEncoded();
 
-    static bool UserVerify(const std::string &name, const std::string &pwd, bool isLogin);
+    static bool UserVerify(const string &name, const string &pwd, bool isLogin);
 
     PARSE_STATE h_state;
-    std::string h_method, h_path, h_version, h_body;
-    std::unordered_map<std::string, std::string> h_header;
-    std::unordered_map<std::string, std::string> h_post;
+    string h_method, h_path, h_version, h_body;
+    std::unordered_map<string, string> h_header;
+    std::unordered_map<string, string> h_post;
 
-    static const std::unordered_set<std::string> DEFAULT_HTML;
-    static const std::unordered_map<std::string, int> DEFAULT_HTML_TAG;
-
-    static int ConvertHex(char ch);
+    static const std::unordered_set<string> DEFAULT_HTML;
+    static const std::unordered_map<string, int> DEFAULT_HTML_TAG;
 };
 
 #endif //HTTP_REQUEST_H
