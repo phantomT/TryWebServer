@@ -37,7 +37,7 @@ public:
 
     void Add(int id, int timeOut, const TimeoutCallBack &cb);
 
-    void DoWork(int id);
+    void DelWork(int id);
 
     void Clear();
 

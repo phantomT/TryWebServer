@@ -3,19 +3,11 @@
 void Timer::ShiftUp(size_t i) {
     assert(i >= 0 && i < t_heap.size());
     size_t j = (i - 1) / 2;
-    while (!(t_heap[j] < t_heap[i])) {
+    while (i > 0 && (t_heap[i] < t_heap[j])) {
         SwapNode(i, j);
         i = j;
         j = (i - 1) / 2;
     }
-}
-
-void Timer::SwapNode(size_t i, size_t j) {
-    assert(i >= 0 && i < t_heap.size());
-    assert(j >= 0 && j < t_heap.size());
-    std::swap(t_heap[i], t_heap[j]);
-    t_ref[t_heap[i].id] = i;
-    t_ref[t_heap[j].id] = j;
 }
 
 bool Timer::ShiftDown(size_t index, size_t n) {
@@ -33,6 +25,14 @@ bool Timer::ShiftDown(size_t index, size_t n) {
     return i > index;
 }
 
+void Timer::SwapNode(size_t i, size_t j) {
+    assert(i >= 0 && i < t_heap.size());
+    assert(j >= 0 && j < t_heap.size());
+    std::swap(t_heap[i], t_heap[j]);
+    t_ref[t_heap[i].id] = i;
+    t_ref[t_heap[j].id] = j;
+}
+
 void Timer::Add(int id, int timeOut, const TimeoutCallBack &cb) {
     assert(id >= 0);
     size_t i;
@@ -41,7 +41,7 @@ void Timer::Add(int id, int timeOut, const TimeoutCallBack &cb) {
         i = t_heap.size();
         t_ref[id] = i;
         t_heap.push_back({id, Clock::now() + MS(timeOut), cb});
-        if(i) ShiftUp(i);
+        ShiftUp(i);
     } else {
         // 已有结点：调整堆
         i = t_ref[id];
@@ -53,7 +53,7 @@ void Timer::Add(int id, int timeOut, const TimeoutCallBack &cb) {
     }
 }
 
-void Timer::DoWork(int id) {
+void Timer::DelWork(int id) {
     // 删除指定id结点，并触发回调函数
     if (t_heap.empty() || t_ref.count(id) == 0) {
         return;

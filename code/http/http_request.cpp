@@ -50,7 +50,12 @@ bool HttpRequest::Parse(Buffer &buff) {
             default:
                 break;
         }
-        if (lineEnd == buff.BeginWrite()) { break; }
+        if (lineEnd == buff.BeginWrite()) {
+            if(h_method == "POST" && h_state == FINISH){
+                buff.RetrieveUntil(lineEnd);
+            }
+            break;
+        }
         buff.RetrieveUntil(lineEnd + 2);
     }
     LOG_DEBUG("[%s], [%s], [%s]", h_method.c_str(), h_path.c_str(), h_version.c_str())

@@ -13,7 +13,7 @@
     "connPoolNum": 12,
     "threadNum": 6,
     "openLog": true,
-    "logLevel": 1,
+    "logLevel": 0,
     "logQueSize": 1024
   }
 }
