@@ -28,9 +28,9 @@ public:
         }
     }
 
-    ThreadPool() = default;
+    ThreadPool(const ThreadPool &other) = delete;
 
-    ThreadPool(ThreadPool &&) = default;
+    ThreadPool &operator=(const ThreadPool &other) = delete;
 
     ~ThreadPool() {
         if (static_cast<bool>(t_pool)) {
